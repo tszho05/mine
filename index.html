@@ -1,0 +1,1407 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>標點符號黃金礦工</title>
+  <style>
+    :root {
+      --bg-top: #ffe5a8;
+      --bg-bottom: #ffb257;
+      --panel: rgba(255, 249, 234, 0.92);
+      --ink: #4b2a14;
+      --accent: #f06b27;
+      --accent-deep: #d9480f;
+      --team-a: #1d7dd8;
+      --team-b: #ec4899;
+      --shadow: 0 16px 42px rgba(104, 51, 18, 0.16);
+      --font-ui: "Microsoft JhengHei", "PingFang TC", "Noto Sans TC", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: var(--font-ui);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(255,255,255,0.75), transparent 30%),
+        radial-gradient(circle at top right, rgba(255,255,255,0.45), transparent 25%),
+        linear-gradient(180deg, var(--bg-top), var(--bg-bottom));
+    }
+
+    .shell {
+      width: min(1400px, 100%);
+      min-height: 100vh;
+      margin: 0 auto;
+      padding: 16px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .topbar {
+      display: grid;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 14px;
+      align-items: stretch;
+    }
+
+    .badge, .question-panel, .controls, .summary-card {
+      background: var(--panel);
+      border: 4px solid rgba(240, 107, 39, 0.35);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .badge {
+      padding: 14px 18px;
+      display: grid;
+      gap: 8px;
+      align-content: center;
+    }
+
+    .team-label {
+      font-size: 0.95rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+    }
+
+    .team-a { color: var(--team-a); }
+    .team-b { color: var(--team-b); text-align: right; }
+
+    .badge-score {
+      font-size: clamp(1.9rem, 3vw, 2.8rem);
+      font-weight: 900;
+      line-height: 1;
+    }
+
+    .badge-meta {
+      display: flex;
+      gap: 12px;
+      justify-content: space-between;
+      font-size: 0.95rem;
+      font-weight: 700;
+      opacity: 0.86;
+    }
+
+    .question-panel {
+      padding: 10px 22px 12px;
+      display: grid;
+      gap: 6px;
+      min-height: 118px;
+      align-content: center;
+      text-align: center;
+    }
+
+    .title {
+      margin: 0;
+      font-size: clamp(1.15rem, 2vw, 1.45rem);
+      color: var(--accent-deep);
+      letter-spacing: 0.08em;
+    }
+
+    .timer {
+      font-size: clamp(1.8rem, 3vw, 2.5rem);
+      font-weight: 900;
+      color: var(--accent);
+    }
+
+    .question-text {
+      font-size: clamp(1.5rem, 2.6vw, 2.55rem);
+      line-height: 1.38;
+      font-weight: 800;
+      min-height: 4rem;
+      word-break: break-word;
+      display: grid;
+      justify-items: center;
+      align-items: center;
+    }
+
+    .question-plain {
+      white-space: pre-wrap;
+    }
+
+    .question-anchored {
+      display: inline-grid;
+      grid-template-columns: auto auto auto;
+      grid-template-areas:
+        "prefix anchor suffix"
+        ". markers .";
+      align-items: end;
+      justify-items: center;
+      row-gap: 0.26rem;
+      white-space: nowrap;
+    }
+
+    .question-prefix { grid-area: prefix; }
+    .question-anchor { grid-area: anchor; }
+    .question-suffix { grid-area: suffix; }
+
+    .question-prefix,
+    .question-anchor,
+    .question-suffix {
+      display: inline-block;
+    }
+
+    .question-markers {
+      grid-area: markers;
+      display: flex;
+      align-items: center;
+      font-size: clamp(1.15rem, 2vw, 1.9rem);
+      line-height: 1;
+      letter-spacing: 0;
+      padding: 0 0.06em;
+    }
+
+    .question-markers.is-placeholder {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .question-markers.is-solved {
+      width: 100%;
+      justify-content: center;
+      gap: 0;
+      padding: 0;
+    }
+
+    .question-marker-char {
+      display: inline-block;
+      min-width: 1ch;
+      text-align: center;
+    }
+
+    .question-marker-char.solved-line {
+      width: 100%;
+      min-width: 100%;
+    }
+
+    .question-marker-char.solved-line.book-title {
+      height: 0.48em;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 8' preserveAspectRatio='none'%3E%3Cpath d='M0 5 Q3 1 6 5 T12 5 T18 5 T24 5' fill='none' stroke='%234b2a14' stroke-width='1.8' stroke-linecap='round'/%3E%3C/svg%3E");
+      background-repeat: repeat-x;
+      background-size: 24px 8px;
+      background-position: center bottom;
+    }
+
+    .question-marker-char.solved-line.proper-noun {
+      height: 0;
+      border-bottom: 0.18em solid #4b2a14;
+      transform: translateY(-0.06em);
+    }
+
+    .arena-shell { position: relative; min-height: 520px; }
+
+    canvas {
+      width: 100%;
+      height: min(74vh, 840px);
+      min-height: 580px;
+      display: block;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.35), rgba(255,255,255,0.08) 42%, rgba(123, 60, 20, 0.08) 42%, rgba(123, 60, 20, 0.12) 100%);
+      border-radius: 32px;
+      box-shadow: var(--shadow);
+      touch-action: manipulation;
+    }
+
+    .controls {
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .team-control {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .team-control.right { justify-content: flex-end; }
+
+    .control-button, .restart-button {
+      border: none;
+      border-radius: 999px;
+      padding: 14px 22px;
+      color: white;
+      font: inherit;
+      font-size: 1.08rem;
+      font-weight: 900;
+      cursor: pointer;
+      box-shadow: 0 10px 20px rgba(0, 0, 0, 0.18);
+      transition: transform 120ms ease;
+    }
+
+    .control-button:active, .restart-button:active {
+      transform: translateY(2px) scale(0.98);
+    }
+
+    .control-button.team-a { background: linear-gradient(180deg, #34a3ff, #1d7dd8); }
+    .control-button.team-b { background: linear-gradient(180deg, #ff70b5, #ec4899); }
+    .restart-button { background: linear-gradient(180deg, #ff9f43, #f06b27); }
+
+    .control-center {
+      display: grid;
+      justify-items: center;
+      gap: 10px;
+    }
+
+    .mode-switch {
+      display: inline-flex;
+      gap: 8px;
+      padding: 8px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.62);
+      box-shadow: inset 0 0 0 2px rgba(240, 107, 39, 0.14);
+    }
+
+    .mode-button {
+      border: none;
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: transparent;
+      color: var(--ink);
+      font: inherit;
+      font-size: 0.98rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: transform 120ms ease, background 120ms ease, color 120ms ease;
+    }
+
+    .mode-button:hover {
+      transform: translateY(-1px);
+    }
+
+    .mode-button.active {
+      color: #fff;
+      background: linear-gradient(180deg, #ff9f43, #f06b27);
+      box-shadow: 0 8px 16px rgba(170, 79, 16, 0.2);
+    }
+
+    .overlay {
+      position: absolute;
+      inset: 0;
+      display: none;
+      place-items: center;
+      background: rgba(93, 42, 11, 0.42);
+      border-radius: 32px;
+      padding: 20px;
+    }
+
+    .overlay.show { display: grid; }
+
+    .summary-card {
+      width: min(720px, 100%);
+      padding: 28px;
+      text-align: center;
+      display: grid;
+      gap: 18px;
+    }
+
+    .summary-title {
+      margin: 0;
+      font-size: clamp(1.7rem, 3vw, 2.4rem);
+      color: var(--accent-deep);
+    }
+
+    .winner {
+      font-size: clamp(1.5rem, 2.6vw, 2.15rem);
+      font-weight: 900;
+    }
+
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .stat {
+      background: rgba(255,255,255,0.7);
+      border-radius: 18px;
+      padding: 16px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .stat-name { font-size: 1rem; font-weight: 800; }
+    .stat-value { font-size: 2.2rem; font-weight: 900; }
+
+    @media (max-width: 980px) {
+      .topbar { grid-template-columns: 1fr; }
+      .team-b { text-align: left; }
+      .controls { grid-template-columns: 1fr; }
+      .team-control, .team-control.right {
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <section class="topbar">
+      <article class="badge">
+        <div class="team-label team-a">A 組</div>
+        <div class="badge-score" id="scoreA">0</div>
+        <div class="badge-meta">
+          <span>連擊 <span id="comboA">0</span></span>
+          <span>答對 <span id="correctA">0</span></span>
+        </div>
+      </article>
+      <article class="question-panel">
+        <h1 class="title">標點符號黃金礦工</h1>
+        <div class="timer" id="timerText">60</div>
+        <div class="question-text" id="questionText">準備開始</div>
+      </article>
+      <article class="badge">
+        <div class="team-label team-b">B 組</div>
+        <div class="badge-score" id="scoreB">0</div>
+        <div class="badge-meta">
+          <span>答對 <span id="correctB">0</span></span>
+          <span>連擊 <span id="comboB">0</span></span>
+        </div>
+      </article>
+    </section>
+
+    <section class="arena-shell">
+      <canvas id="gameCanvas" width="1400" height="760" aria-label="標點符號黃金礦工畫布"></canvas>
+      <div class="overlay" id="overlay">
+        <div class="summary-card">
+          <h2 class="summary-title" id="summaryTitle">時間到</h2>
+          <div class="winner" id="winnerText">準備結算</div>
+          <div class="summary-grid">
+            <div class="stat"><div class="stat-name team-a">A 組分數</div><div class="stat-value" id="finalScoreA">0</div></div>
+            <div class="stat"><div class="stat-name team-b">B 組分數</div><div class="stat-value" id="finalScoreB">0</div></div>
+            <div class="stat"><div class="stat-name">最高連擊</div><div class="stat-value" id="finalCombo">0</div></div>
+            <div class="stat"><div class="stat-name">總答對題數</div><div class="stat-value" id="finalCorrect">0</div></div>
+          </div>
+          <button class="restart-button" id="restartButton" type="button">重新開始</button>
+        </div>
+      </div>
+    </section>
+
+    <section class="controls">
+      <div class="team-control">
+        <button class="control-button team-a" id="fireA" type="button">A 組發射</button>
+      </div>
+      <div class="control-center">
+        <div class="mode-switch" aria-label="遊戲模式">
+          <button class="mode-button active" id="modeTimed" type="button">限時模式</button>
+          <button class="mode-button" id="modeUntimed" type="button">不計時模式</button>
+        </div>
+        <button class="restart-button" id="quickRestart" type="button">重新開始</button>
+      </div>
+      <div class="team-control right">
+        <button class="control-button team-b" id="fireB" type="button">B 組發射</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    (() => {
+      const rawQuestions = [
+        { id: 1, sentence: "今天天氣真好，我們去踢球吧（ ）", answer: "！", answerLabel: "感嘆號", category: "感嘆號", difficulty: 1, hint: "帶有強烈語氣時，可用感嘆號。" },
+        { id: 2, sentence: "小明跑得很快，他取得了第一名（ ）", answer: "。", answerLabel: "句號", category: "句號", difficulty: 1, hint: "陳述事情，句末用句號。" },
+        { id: 3, sentence: "我每天早上先刷牙，然後吃早餐（ ）", answer: "。", answerLabel: "句號", category: "句號", difficulty: 1, hint: "句子結束時，用句號收尾。" },
+        { id: 4, sentence: "你叫甚麼名字（ ）", answer: "？", answerLabel: "問號", category: "問號", difficulty: 1, hint: "提出問題，句末用問號。" },
+        { id: 5, sentence: "這是誰的書包（ ）", answer: "？", answerLabel: "問號", category: "問號", difficulty: 1, hint: "在問事情，用問號。" },
+        { id: 6, sentence: "請問洗手間在哪裡裏（ ）", answer: "？", answerLabel: "問號", category: "問號", difficulty: 1, hint: "疑問句的句末要用問號。" },
+        { id: 7, sentence: "今天是我的生日（ ）", answer: "。", answerLabel: "句號", category: "句號", difficulty: 1, hint: "這是一般陳述句，句末用句號。" },
+        { id: 8, sentence: "我們贏了比賽（ ）真開心啊！", answer: "，", answerLabel: "逗號", category: "逗號", difficulty: 1, hint: "前後語意要停一下，用逗號隔開。" },
+        { id: 9, sentence: "哥哥學會騎單車了（ ）", answer: "。", answerLabel: "句號", category: "句號", difficulty: 1, hint: "句子平穩敘述結束，句末用句號。" },
+        { id: 10, sentence: "弟弟（ ）妹妹和我一起做功課。", answer: "、", answerLabel: "頓號", category: "頓號", difficulty: 1, hint: "並列的人或物，可用頓號分開。" },
+        { id: 11, sentence: "桌上有鉛筆（ ）橡皮擦和間尺。", answer: "、", answerLabel: "頓號", category: "頓號", difficulty: 1, hint: "列舉項目時，常用頓號。" },
+        { id: 12, sentence: "我喜歡吃蘋果（ ）香蕉和西瓜。", answer: "、", answerLabel: "頓號", category: "頓號", difficulty: 1, hint: "同類東西並列時，可用頓號。" },
+        { id: 13, sentence: "媽媽說：（ ）今天我們去公園玩。（ ）", answer: "「」", answerLabel: "引號", category: "引號", difficulty: 2, hint: "直接說的話，要加上前後引號。" },
+        { id: 14, sentence: "老師說：（ ）請大家翻開課本第五頁。（ ）", answer: "「」", answerLabel: "引號", category: "引號", difficulty: 2, hint: "人物說話內容要用引號框起來。" },
+        { id: 15, sentence: "哥哥大叫：（ ）有蟲啊！（ ）", answer: "「」", answerLabel: "引號", category: "引號", difficulty: 2, hint: "把說話內容包起來，要用成對引號。" },
+        { id: 16, sentence: "爸爸對我說（ ）「快點起床！」", answer: "：", answerLabel: "冒號", category: "冒號", difficulty: 1, hint: "後面要接說話內容時，可用冒號。" },
+        { id: 17, sentence: "老師大聲說（ ）「請大家保持安靜！」", answer: "：", answerLabel: "冒號", category: "冒號", difficulty: 1, hint: "提示後文內容時，可用冒號。" },
+        { id: 18, sentence: "小明說（ ）「我想喝水。」", answer: "：", answerLabel: "冒號", category: "冒號", difficulty: 1, hint: "說話前常用冒號。" },
+        { id: 19, sentence: "我昨天看了小王子這本書。", answer: "﹏", answerLabel: "書名號", category: "書名號", difficulty: 3, hint: "書名要用書名號標示。", renderMode: "anchored-marker", prefixText: "我昨天看了", anchorText: "小王子", suffixText: "這本書。", markerSymbol: "﹏", solvedMarkerText: "﹏﹏", markerPair: ["（", "）"] },
+        { id: 20, sentence: "老師叫我們回家閱讀伊索寓言。", answer: "﹏", answerLabel: "書名號", category: "書名號", difficulty: 3, hint: "書名兩側要成對標示書名號。", renderMode: "anchored-marker", prefixText: "老師叫我們回家閱讀", anchorText: "伊索寓言", suffixText: "。", markerSymbol: "﹏", solvedMarkerText: "﹏﹏", markerPair: ["（", "）"] },
+        { id: 21, sentence: "爸爸買了一本十萬個為甚麼給我。", answer: "﹏", answerLabel: "書名號", category: "書名號", difficulty: 3, hint: "看到書名時，要補成對的書名號。", renderMode: "anchored-marker", prefixText: "爸爸買了一本", anchorText: "十萬個為甚麼", suffixText: "給我。", markerSymbol: "﹏", solvedMarkerText: "﹏﹏", markerPair: ["（", "）"] },
+        { id: 22, sentence: "我住在香港，每天乘坐地鐵上學。", answer: "＿", answerLabel: "專名號", category: "專名號", difficulty: 3, hint: "地名屬於專有名詞，可用專名號。", renderMode: "anchored-marker", prefixText: "我住在", anchorText: "香港", suffixText: "，每天乘坐地鐵上學。", markerSymbol: "＿", solvedMarkerText: "＿＿", markerPair: ["（", "）"] },
+        { id: 23, sentence: "我們去了將軍澳海濱公園玩耍。", answer: "＿", answerLabel: "專名號", category: "專名號", difficulty: 3, hint: "專有地名要配成對的專名號。", renderMode: "anchored-marker", prefixText: "我們去了", anchorText: "將軍澳海濱公園", suffixText: "玩耍。", markerSymbol: "＿", solvedMarkerText: "＿＿", markerPair: ["（", "）"] },
+        { id: 24, sentence: "我的好朋友叫陳大文。", answer: "＿", answerLabel: "專名號", category: "專名號", difficulty: 3, hint: "人名可以用專名號標示。", renderMode: "anchored-marker", prefixText: "我的好朋友叫", anchorText: "陳大文", suffixText: "。", markerSymbol: "＿", solvedMarkerText: "＿＿", markerPair: ["（", "）"] },
+        { id: 25, sentence: "太棒了（ ）你一定可以做到！", answer: "！", answerLabel: "感嘆號", category: "感嘆號", difficulty: 1, hint: "表達強烈情感時，可用感嘆號。" },
+        { id: 26, sentence: "同學們排好隊（ ）準備出發。", answer: "，", answerLabel: "逗號", category: "逗號", difficulty: 1, hint: "前後語意要稍停一下，常用逗號。" },
+        { id: 27, sentence: "哇（ ）這朵花真漂亮啊！", answer: "！", answerLabel: "感嘆號", category: "感嘆號", difficulty: 1, hint: "表達讚嘆語氣時，可用感嘆號。" },
+        { id: 28, sentence: "加油（ ）你一定可以的！", answer: "，", answerLabel: "逗號", category: "逗號", difficulty: 1, hint: "前面先呼喊，後面再接內容，可用逗號。" },
+        { id: 29, sentence: "孫中山是一位偉大的人物。", answer: "＿", answerLabel: "專名號", category: "專名號", difficulty: 3, hint: "人名屬於專有名詞，可補專名號。", renderMode: "anchored-marker", prefixText: "", anchorText: "孫中山", suffixText: "是一位偉大的人物。", markerSymbol: "＿", solvedMarkerText: "＿＿", markerPair: ["（", "）"] },
+        { id: 30, sentence: "我在圖書館借了短耳兔這本書。", answer: "﹏", answerLabel: "書名號", category: "書名號", difficulty: 3, hint: "補齊書名的另一側書名號。", renderMode: "anchored-marker", prefixText: "我在圖書館借了", anchorText: "短耳兔", suffixText: "這本書。", markerSymbol: "﹏", solvedMarkerText: "﹏﹏", markerPair: ["（", "）"] }
+      ];
+
+      const symbolMeta = [
+        { symbol: "，", label: "逗號" }, { symbol: "。", label: "句號" },
+        { symbol: "？", label: "問號" }, { symbol: "！", label: "感嘆號" },
+        { symbol: "、", label: "頓號" }, { symbol: "：", label: "冒號" },
+        { symbol: "「」", label: "引號" }, { symbol: "﹏", label: "書名號" },
+        { symbol: "＿", label: "專名號" }
+      ];
+
+      const palette = ["#ffcd73", "#89d4ff", "#ff96c5", "#9be07d", "#c6b8ff", "#ffb26b", "#80e4d6", "#f3a6ff"];
+      const GEM_STYLES = {
+        "。": { fillA: "#ffcb6b", fillB: "#d9821d", edge: "#8b4c18", glow: "rgba(255, 184, 77, 0.42)", shape: "amber" },
+        "？": { fillA: "#9ed8ff", fillB: "#2c7be5", edge: "#1f4b89", glow: "rgba(68, 149, 255, 0.38)", shape: "round" },
+        "！": { fillA: "#ff9aa2", fillB: "#d9485f", edge: "#8f2030", glow: "rgba(255, 98, 117, 0.36)", shape: "teardrop" },
+        "，": { fillA: "#ffc4f0", fillB: "#e56bc2", edge: "#98447f", glow: "rgba(255, 136, 216, 0.35)", shape: "round" },
+        "、": { fillA: "#b5f2b7", fillB: "#3ca764", edge: "#26653e", glow: "rgba(108, 221, 130, 0.34)", shape: "hex" },
+        "：": { fillA: "#ffe49a", fillB: "#db9f24", edge: "#8b6416", glow: "rgba(255, 209, 87, 0.35)", shape: "octagon" },
+        "「」": { fillA: "#dec3ff", fillB: "#8b5cf6", edge: "#5c31a8", glow: "rgba(167, 124, 255, 0.34)", shape: "cut" },
+        "﹏": { fillA: "#eef6ff", fillB: "#9db8d1", edge: "#60758f", glow: "rgba(212, 236, 255, 0.4)", shape: "moon" },
+        "＿": { fillA: "#f7f7f7", fillB: "#9da4af", edge: "#545b66", glow: "rgba(255, 255, 255, 0.32)", shape: "jade" }
+      };
+      const totalTime = 60;
+      const untimedQuestionCount = 10;
+      const swingRange = Math.PI / 3;
+      const safeVerticalAngle = 0.22;
+      const safeReactionDepth = 180;
+      const corridorWidth = 68;
+      const maxPlacementAttempts = 100;
+      const questionDelayMs = 950;
+      const originY = 172;
+      const areaTop = 250;
+      const bottomMargin = 42;
+
+      const canvas = document.getElementById("gameCanvas");
+      const ctx = canvas.getContext("2d");
+      const overlay = document.getElementById("overlay");
+      const questionText = document.getElementById("questionText");
+      const timerText = document.getElementById("timerText");
+      const scoreA = document.getElementById("scoreA");
+      const scoreB = document.getElementById("scoreB");
+      const comboA = document.getElementById("comboA");
+      const comboB = document.getElementById("comboB");
+      const correctA = document.getElementById("correctA");
+      const correctB = document.getElementById("correctB");
+      const finalScoreA = document.getElementById("finalScoreA");
+      const finalScoreB = document.getElementById("finalScoreB");
+      const finalCombo = document.getElementById("finalCombo");
+      const finalCorrect = document.getElementById("finalCorrect");
+      const summaryTitle = document.getElementById("summaryTitle");
+      const winnerText = document.getElementById("winnerText");
+      const fireA = document.getElementById("fireA");
+      const fireB = document.getElementById("fireB");
+      const restartButton = document.getElementById("restartButton");
+      const quickRestart = document.getElementById("quickRestart");
+      const modeTimed = document.getElementById("modeTimed");
+      const modeUntimed = document.getElementById("modeUntimed");
+
+      let animationFrame = 0;
+      let lastTime = 0;
+      let gameState;
+      let selectedMode = "timed";
+
+      function createTeam(name, color) {
+        return {
+          name,
+          color,
+          score: 0,
+          combo: 0,
+          maxCombo: 0,
+          correct: 0,
+          hook: {
+            angle: 0,
+            swingDirection: 1,
+            state: "swing",
+            length: 92,
+            speedScale: 1,
+            currentHit: null
+          }
+        };
+      }
+
+      function createInitialState() {
+        return {
+          running: true,
+          timeLeft: totalTime,
+          elapsed: 0,
+          lastTickSecond: totalTime,
+          questionOrder: shuffle(rawQuestions.map((q) => q.id)),
+          questionIndex: 0,
+          currentQuestion: null,
+          currentObjects: [],
+          questionResolvedAt: 0,
+          pendingNextQuestion: false,
+          teamA: createTeam("A 組", "#1d7dd8"),
+          teamB: createTeam("B 組", "#ec4899")
+        };
+      }
+
+      function shuffle(list) {
+        const copy = [...list];
+        for (let i = copy.length - 1; i > 0; i -= 1) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function createQuestionOrder(mode) {
+        const order = shuffle(rawQuestions.map((q) => q.id));
+        return mode === "untimed" ? order.slice(0, untimedQuestionCount) : order;
+      }
+
+      function startGame() {
+        gameState = createInitialState();
+        gameState.mode = selectedMode;
+        gameState.timeLeft = selectedMode === "timed" ? totalTime : untimedQuestionCount;
+        gameState.lastTickSecond = gameState.timeLeft;
+        gameState.questionsAnswered = 0;
+        gameState.targetQuestionCount = selectedMode === "untimed" ? untimedQuestionCount : 0;
+        gameState.questionOrder = createQuestionOrder(selectedMode);
+        gameState.questionIndex = 0;
+        overlay.classList.remove("show");
+        lastTime = 0;
+        updateModeButtons();
+        pickNextQuestion();
+        updateHud();
+        cancelAnimationFrame(animationFrame);
+        animationFrame = requestAnimationFrame(loop);
+      }
+
+      function pickNextQuestion() {
+        if (gameState.questionIndex >= gameState.questionOrder.length) {
+          if (gameState.mode === "untimed") {
+            endGame();
+            return;
+          }
+          gameState.questionOrder = createQuestionOrder("timed");
+          gameState.questionIndex = 0;
+        }
+
+        const nextId = gameState.questionOrder[gameState.questionIndex];
+        gameState.questionIndex += 1;
+        gameState.currentQuestion = rawQuestions.find((item) => item.id === nextId);
+        gameState.currentObjects = buildRoundObjects(gameState.currentQuestion);
+        gameState.questionResolvedAt = 0;
+        gameState.pendingNextQuestion = false;
+        resetHook(gameState.teamA.hook);
+        resetHook(gameState.teamB.hook);
+        renderQuestion(gameState.currentQuestion, false);
+      }
+
+      function resetHook(hook) {
+        hook.state = "swing";
+        hook.length = 92;
+        hook.speedScale = 1;
+        hook.currentHit = null;
+      }
+
+      function buildRoundObjects(question) {
+        const width = canvas.width;
+        const height = canvas.height;
+        const halfW = width / 2;
+        const originLocal = { x: halfW / 2, y: originY };
+        const plan = generatePlacementPlan(question, halfW, height, originLocal);
+
+        return plan.map((item) => ({
+          id: `obj-${question.id}-${Math.random().toString(36).slice(2, 10)}`,
+          ...item,
+          isCollected: false,
+          collectedBy: null,
+          leftX: item.localX,
+          rightX: width - item.localX
+        }));
+      }
+
+      function generatePlacementPlan(question, halfW, height, originLocal) {
+        const stage = getDifficultyStage();
+        const correctMeta = symbolMeta.find((item) => item.symbol === question.answer);
+        const distractorSymbols = buildDistractorSymbols(question, stage);
+        const targetAngle = randomBetween(0.4, 0.95) * (Math.random() > 0.5 ? 1 : -1);
+        const targetDistance = randomBetween(248, 330);
+        const correct = {
+          symbol: question.answer,
+          label: correctMeta.label,
+          isCorrect: true,
+          radius: 32,
+          color: randomChoice(palette),
+          localX: clamp(originLocal.x + Math.sin(targetAngle) * targetDistance, 82, halfW - 82),
+          localY: clamp(originLocal.y + Math.cos(targetAngle) * targetDistance, areaTop + 30, height - bottomMargin - 30)
+        };
+        const objects = [correct];
+
+        for (const symbol of distractorSymbols) {
+          let placed = false;
+          const meta = symbolMeta.find((item) => item.symbol === symbol);
+          for (let attempt = 0; attempt < maxPlacementAttempts; attempt += 1) {
+            const candidate = {
+              symbol,
+              label: meta.label,
+              isCorrect: false,
+              radius: symbol === "「」" ? 34 : 30,
+              color: randomChoice(palette),
+              localX: randomBetween(64, halfW - 64),
+              localY: randomBetween(areaTop + 40, height - bottomMargin - 44)
+            };
+            if (isOutsideSafeReactionZone(candidate, originLocal) &&
+                respectsSpacing(candidate, objects) &&
+                doesNotBlockCorrectPath(candidate, correct, originLocal)) {
+              objects.push(candidate);
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) {
+            return fallbackPlacementPlan(question, halfW, height, originLocal);
+          }
+        }
+
+        if (!validateClearPath(originLocal, correct, objects.slice(1))) {
+          return fallbackPlacementPlan(question, halfW, height, originLocal);
+        }
+        return objects;
+      }
+
+      function fallbackPlacementPlan(question, halfW, height, originLocal) {
+        const correctMeta = symbolMeta.find((item) => item.symbol === question.answer);
+        const wrong1 = pickWrong(question.answer, ["，", "。", "？"]);
+        const wrong2 = pickWrong(question.answer, ["！", "、", "："]);
+        const wrong3 = pickWrong(question.answer, ["「」", "﹏", "＿"]);
+        return [
+          { symbol: question.answer, label: correctMeta.label, isCorrect: true, radius: 32, color: palette[0], localX: originLocal.x - 112, localY: areaTop + 92 },
+          { symbol: wrong1, label: symbolMeta.find((item) => item.symbol === wrong1).label, isCorrect: false, radius: 30, color: palette[1], localX: 100, localY: areaTop + 258 },
+          { symbol: wrong2, label: symbolMeta.find((item) => item.symbol === wrong2).label, isCorrect: false, radius: 30, color: palette[2], localX: halfW - 110, localY: areaTop + 250 },
+          { symbol: wrong3, label: symbolMeta.find((item) => item.symbol === wrong3).label, isCorrect: false, radius: 32, color: palette[3], localX: originLocal.x + 120, localY: height - 118 }
+        ];
+      }
+
+      function pickWrong(answer, options) {
+        const match = options.find((item) => item !== answer);
+        return match || "，";
+      }
+
+      function buildDistractorSymbols(question, stage) {
+        const commonConfusions = {
+          "，": ["、", "。", "！"], "。": ["！", "？", "，"], "？": ["。", "！", "："],
+          "！": ["。", "？", "，"], "、": ["，", "。", "："], "：": ["，", "。", "「」"],
+          "「」": ["：", "﹏", "＿"], "﹏": ["＿", "「」", "："], "＿": ["﹏", "「」", "："]
+        };
+        const base = new Set(commonConfusions[question.answer] || []);
+        const poolByStage = [
+          ["，", "。", "？", "！", "、", "："],
+          ["，", "。", "？", "！", "、", "：", "「」"],
+          ["，", "。", "？", "！", "、", "：", "「」", "﹏", "＿"]
+        ];
+        for (const symbol of poolByStage[stage]) {
+          if (symbol !== question.answer) {
+            base.add(symbol);
+          }
+        }
+        return shuffle([...base]).slice(0, stage === 2 ? 6 : 5);
+      }
+
+      function getDifficultyStage() {
+        const progress = gameState.mode === "untimed"
+          ? gameState.questionsAnswered / Math.max(1, gameState.targetQuestionCount)
+          : gameState.elapsed / totalTime;
+        if (progress < 0.34) return 0;
+        if (progress < 0.68) return 1;
+        return 2;
+      }
+
+      function isOutsideSafeReactionZone(candidate, origin) {
+        const angle = Math.atan2(candidate.localX - origin.x, candidate.localY - origin.y);
+        return !(Math.abs(angle) < safeVerticalAngle && candidate.localY - origin.y < safeReactionDepth);
+      }
+
+      function respectsSpacing(candidate, objects) {
+        return objects.every((item) => {
+          const dx = candidate.localX - item.localX;
+          const dy = candidate.localY - item.localY;
+          const minDistance = candidate.radius + item.radius + 26;
+          return (dx * dx + dy * dy) > minDistance * minDistance;
+        });
+      }
+
+      function doesNotBlockCorrectPath(candidate, correct, origin) {
+        return !isBlockingLine(origin, correct, candidate, corridorWidth);
+      }
+
+      function validateClearPath(origin, correct, distractors) {
+        if (!isOutsideSafeReactionZone(correct, origin)) {
+          return false;
+        }
+        return distractors.every((candidate) => !isBlockingLine(origin, correct, candidate, corridorWidth));
+      }
+
+      function isBlockingLine(origin, correct, obstacle, extraWidth) {
+        const vx = correct.localX - origin.x;
+        const vy = correct.localY - origin.y;
+        const wx = obstacle.localX - origin.x;
+        const wy = obstacle.localY - origin.y;
+        const vv = vx * vx + vy * vy;
+        const projection = (wx * vx + wy * vy) / vv;
+        if (projection <= 0 || projection >= 0.92) {
+          return false;
+        }
+        const closestX = origin.x + projection * vx;
+        const closestY = origin.y + projection * vy;
+        const dx = obstacle.localX - closestX;
+        const dy = obstacle.localY - closestY;
+        const allowed = obstacle.radius + extraWidth;
+        return dx * dx + dy * dy < allowed * allowed;
+      }
+
+      function randomBetween(min, max) {
+        return min + Math.random() * (max - min);
+      }
+
+      function randomChoice(list) {
+        return list[Math.floor(Math.random() * list.length)];
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function loop(timestamp) {
+        if (!lastTime) {
+          lastTime = timestamp;
+        }
+        const delta = Math.min(0.033, (timestamp - lastTime) / 1000);
+        lastTime = timestamp;
+        update(delta, timestamp);
+        render();
+        if (gameState.running) {
+          animationFrame = requestAnimationFrame(loop);
+        }
+      }
+
+      function update(delta, now) {
+        if (!gameState.running) {
+          return;
+        }
+        if (gameState.mode === "timed") {
+          gameState.elapsed += delta;
+          gameState.timeLeft = Math.max(0, totalTime - gameState.elapsed);
+          const secondsLeft = Math.ceil(gameState.timeLeft);
+          if (secondsLeft !== gameState.lastTickSecond) {
+            gameState.lastTickSecond = secondsLeft;
+            timerText.textContent = String(secondsLeft);
+          }
+          if (gameState.timeLeft <= 0) {
+            endGame();
+            return;
+          }
+        }
+        updateHook(gameState.teamA, delta, "left", now);
+        updateHook(gameState.teamB, delta, "right", now);
+        if (gameState.questionResolvedAt && now >= gameState.questionResolvedAt) {
+          completeResolvedQuestion();
+        }
+        updateHud();
+      }
+
+      function completeResolvedQuestion() {
+        gameState.questionsAnswered += 1;
+        if (gameState.mode === "untimed" && gameState.questionsAnswered >= gameState.targetQuestionCount) {
+          endGame();
+          return;
+        }
+        pickNextQuestion();
+      }
+
+      function updateHook(team, delta, side, now) {
+        const hook = team.hook;
+        const origin = getOrigin(side);
+        const maxLength = canvas.height - origin.y - 36;
+
+        if (hook.state === "swing") {
+          hook.angle += 1.36 * hook.swingDirection * delta;
+          if (hook.angle > swingRange) {
+            hook.angle = swingRange;
+            hook.swingDirection = -1;
+          } else if (hook.angle < -swingRange) {
+            hook.angle = -swingRange;
+            hook.swingDirection = 1;
+          }
+          return;
+        }
+
+        if (hook.state === "extend") {
+          hook.length += 310 * hook.speedScale * delta;
+          if (hook.length >= maxLength) {
+            hook.length = maxLength;
+            hook.state = "retract";
+            hook.currentHit = null;
+          }
+          checkCollision(team, side, now);
+          return;
+        }
+
+        const retractSpeed = hook.currentHit && !hook.currentHit.isCorrect ? 142 : 340;
+        hook.length -= retractSpeed * hook.speedScale * delta;
+        if (hook.length <= 92) {
+          hook.length = 92;
+          if (hook.currentHit && hook.currentHit.isCorrect && gameState.pendingNextQuestion) {
+            gameState.pendingNextQuestion = false;
+            gameState.questionResolvedAt = now + 180;
+          }
+          hook.state = "swing";
+          hook.currentHit = null;
+        }
+      }
+
+      function fire(teamKey) {
+        if (!gameState.running || gameState.questionResolvedAt || gameState.pendingNextQuestion) {
+          return;
+        }
+        const team = teamKey === "A" ? gameState.teamA : gameState.teamB;
+        if (team.hook.state !== "swing") {
+          return;
+        }
+        team.hook.state = "extend";
+        team.hook.currentHit = null;
+        team.hook.speedScale = 1;
+      }
+
+      function getOrigin(side) {
+        const halfW = canvas.width / 2;
+        return { x: side === "left" ? halfW / 2 : halfW + halfW / 2, y: originY };
+      }
+
+      function checkCollision(team, side, now) {
+        if (gameState.questionResolvedAt || gameState.pendingNextQuestion) {
+          return;
+        }
+        const hook = team.hook;
+        const origin = getOrigin(side);
+        const tipX = origin.x + Math.sin(hook.angle) * hook.length;
+        const tipY = origin.y + Math.cos(hook.angle) * hook.length;
+
+        for (const obj of gameState.currentObjects) {
+          if (obj.isCollected) {
+            continue;
+          }
+          const x = side === "left" ? obj.leftX : obj.rightX;
+          const dx = tipX - x;
+          const dy = tipY - obj.localY;
+          if (dx * dx + dy * dy <= (obj.radius + 10) * (obj.radius + 10)) {
+            hook.currentHit = obj;
+            obj.isCollected = true;
+            obj.collectedBy = team.name;
+            hook.state = "retract";
+            handleHit(team, obj, now);
+            return;
+          }
+        }
+      }
+
+      function handleHit(team, obj, now) {
+        if (obj.isCorrect) {
+          team.score += 10;
+          team.combo += 1;
+          team.correct += 1;
+          team.maxCombo = Math.max(team.maxCombo, team.combo);
+          team.hook.speedScale = 1.35;
+          const other = team === gameState.teamA ? gameState.teamB : gameState.teamA;
+          other.combo = 0;
+          gameState.pendingNextQuestion = true;
+          renderQuestion(gameState.currentQuestion, true);
+          return;
+        }
+        team.score -= 5;
+        team.combo = 0;
+        team.hook.speedScale = 0.72;
+      }
+
+      function formatQuestion(question, filled) {
+        if (!question) {
+          return "準備開始";
+        }
+        if (!filled) {
+          return question.sentence;
+        }
+        if (question.answer === "「」") {
+          return question.sentence.replace("（ ）", "「").replace("（ ）", "」");
+        }
+        return question.sentence.replace("（ ）", question.answer);
+      }
+
+      function renderQuestion(question, filled) {
+        if (!question) {
+          questionText.textContent = "準備開始";
+          return;
+        }
+
+        if (question.renderMode === "anchored-marker") {
+          const markersHtml = filled
+            ? `
+              <div class="question-markers is-solved">
+                <span class="question-marker-char solved-line ${question.category === "書名號" ? "book-title" : "proper-noun"}" aria-hidden="true"></span>
+              </div>
+            `
+            : `
+              <div class="question-markers is-placeholder">
+                <span class="question-marker-char">${escapeHtml(question.markerPair[0])}</span>
+                <span class="question-marker-char">${escapeHtml(question.markerPair[1])}</span>
+              </div>
+            `;
+          questionText.innerHTML = `
+            <div class="question-anchored">
+              <span class="question-prefix">${escapeHtml(question.prefixText || "")}</span>
+              <span class="question-anchor">${escapeHtml(question.anchorText || "")}</span>
+              <span class="question-suffix">${escapeHtml(question.suffixText || "")}</span>
+              ${markersHtml}
+            </div>
+          `;
+          return;
+        }
+
+        questionText.innerHTML = `<div class="question-plain">${escapeHtml(formatQuestion(question, filled))}</div>`;
+      }
+
+      function escapeHtml(value) {
+        return String(value)
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/"/g, "&quot;")
+          .replace(/'/g, "&#39;");
+      }
+
+      function updateHud() {
+        scoreA.textContent = String(gameState.teamA.score);
+        scoreB.textContent = String(gameState.teamB.score);
+        comboA.textContent = String(gameState.teamA.combo);
+        comboB.textContent = String(gameState.teamB.combo);
+        correctA.textContent = String(gameState.teamA.correct);
+        correctB.textContent = String(gameState.teamB.correct);
+        const progressLabel = gameState.mode === "untimed"
+          ? `${Math.min(gameState.questionsAnswered + (gameState.currentQuestion ? 1 : 0), gameState.targetQuestionCount)} / ${gameState.targetQuestionCount}`
+          : String(Math.ceil(gameState.timeLeft));
+        timerText.textContent = progressLabel;
+      }
+
+      function endGame() {
+        gameState.running = false;
+        cancelAnimationFrame(animationFrame);
+        summaryTitle.textContent = gameState.mode === "untimed" ? "完成練習" : "時間到";
+        finalScoreA.textContent = String(gameState.teamA.score);
+        finalScoreB.textContent = String(gameState.teamB.score);
+        finalCombo.textContent = String(Math.max(gameState.teamA.maxCombo, gameState.teamB.maxCombo));
+        finalCorrect.textContent = String(gameState.teamA.correct + gameState.teamB.correct);
+        winnerText.textContent = gameState.teamA.score === gameState.teamB.score
+          ? "平手，兩組都好厲害！"
+          : `${gameState.teamA.score > gameState.teamB.score ? "A 組" : "B 組"} 勝出！`;
+        if (gameState.teamA.score === gameState.teamB.score) {
+          winnerText.textContent = gameState.mode === "untimed"
+            ? "10 題完成，雙方平手"
+            : "時間到，雙方平手";
+        } else {
+          const winner = gameState.teamA.score > gameState.teamB.score ? "A 組" : "B 組";
+          winnerText.textContent = gameState.mode === "untimed"
+            ? `${winner} 完成 10 題後勝出`
+            : `${winner} 在限時內勝出`;
+        }
+        overlay.classList.add("show");
+      }
+
+      function render() {
+        const width = canvas.width;
+        const height = canvas.height;
+        const halfW = width / 2;
+        ctx.clearRect(0, 0, width, height);
+        drawBackground(width, height, halfW);
+        drawDivider(width, height, halfW);
+        drawArenaLabels(halfW);
+        drawObjects("left");
+        drawObjects("right");
+        drawHook(gameState.teamA, "left");
+        drawHook(gameState.teamB, "right");
+      }
+
+      function drawBackground(width, height, halfW) {
+        ctx.save();
+        ctx.fillStyle = "rgba(29, 125, 216, 0.08)";
+        ctx.fillRect(0, areaTop - 10, halfW, height - (areaTop - 10));
+        ctx.fillStyle = "rgba(236, 72, 153, 0.08)";
+        ctx.fillRect(halfW, areaTop - 10, halfW, height - (areaTop - 10));
+        const ground = ctx.createLinearGradient(0, areaTop + 20, 0, height);
+        ground.addColorStop(0, "rgba(168, 93, 33, 0.08)");
+        ground.addColorStop(1, "rgba(126, 62, 17, 0.26)");
+        ctx.fillStyle = ground;
+        ctx.fillRect(0, areaTop + 24, width, height - (areaTop + 24));
+        ctx.strokeStyle = "rgba(255,255,255,0.2)";
+        ctx.lineWidth = 2;
+        for (let y = areaTop + 32; y < height; y += 68) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          ctx.lineTo(width, y);
+          ctx.stroke();
+        }
+        ctx.restore();
+      }
+
+      function drawDivider(width, height, halfW) {
+        ctx.save();
+        ctx.strokeStyle = "rgba(92, 42, 12, 0.28)";
+        ctx.lineWidth = 4;
+        ctx.setLineDash([12, 10]);
+        ctx.beginPath();
+        ctx.moveTo(halfW, 90);
+        ctx.lineTo(halfW, height - 28);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawArenaLabels(halfW) {
+        ctx.save();
+        ctx.font = "bold 28px Microsoft JhengHei";
+        ctx.fillStyle = "rgba(29, 125, 216, 0.9)";
+        ctx.fillText("A 組搶答區", 42, 228);
+        ctx.fillStyle = "rgba(236, 72, 153, 0.9)";
+        ctx.fillText("B 組搶答區", halfW + 42, 228);
+        ctx.restore();
+      }
+
+      function drawObjects(side) {
+        for (const obj of gameState.currentObjects) {
+          if (obj.isCollected) {
+            continue;
+          }
+          const x = side === "left" ? obj.leftX : obj.rightX;
+          drawBall(obj, x, obj.localY);
+        }
+      }
+
+      function drawHook(team, side) {
+        const hook = team.hook;
+        const origin = getOrigin(side);
+        const tipX = origin.x + Math.sin(hook.angle) * hook.length;
+        const tipY = origin.y + Math.cos(hook.angle) * hook.length;
+        const cableJointX = origin.x + Math.sin(hook.angle) * 36;
+        const cableJointY = origin.y + Math.cos(hook.angle) * 36;
+        const accent = team.color;
+        const accentSoft = side === "left" ? "#8fd3ff" : "#ffb0d3";
+
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "rgba(90, 58, 34, 0.55)";
+        ctx.lineWidth = 10;
+        ctx.beginPath();
+        ctx.moveTo(origin.x, origin.y);
+        ctx.lineTo(tipX, tipY);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(255, 245, 224, 0.95)";
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(origin.x, origin.y);
+        ctx.lineTo(tipX, tipY);
+        ctx.stroke();
+
+        ctx.fillStyle = "#8f6746";
+        ctx.beginPath();
+        ctx.arc(cableJointX, cableJointY, 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        const housing = ctx.createRadialGradient(origin.x - 6, origin.y - 8, 4, origin.x, origin.y, 28);
+        housing.addColorStop(0, "#fff4cf");
+        housing.addColorStop(0.55, accentSoft);
+        housing.addColorStop(1, "#7d4b2f");
+        ctx.fillStyle = housing;
+        ctx.beginPath();
+        ctx.arc(origin.x, origin.y, 24, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#ffe2a8";
+        ctx.beginPath();
+        ctx.arc(origin.x, origin.y, 13, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = accent;
+        ctx.beginPath();
+        ctx.arc(origin.x, origin.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "rgba(255,255,255,0.75)";
+        ctx.beginPath();
+        ctx.arc(origin.x - 7, origin.y - 8, 4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+        ctx.save();
+        ctx.translate(tipX, tipY + 4);
+        ctx.rotate(-hook.angle);
+
+        const bodyGradient = ctx.createLinearGradient(-16, -16, 16, 16);
+        bodyGradient.addColorStop(0, "#ffe8bd");
+        bodyGradient.addColorStop(0.55, accentSoft);
+        bodyGradient.addColorStop(1, "#8a5537");
+        ctx.fillStyle = bodyGradient;
+        ctx.beginPath();
+        ctx.arc(0, 0, 12, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(94, 58, 30, 0.85)";
+        ctx.lineWidth = 2.5;
+        ctx.stroke();
+
+        ctx.fillStyle = "#fff4d7";
+        ctx.beginPath();
+        ctx.arc(-3, -4, 4, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#7b4e34";
+        ctx.beginPath();
+        ctx.arc(0, 0, 3.4, 0, Math.PI * 2);
+        ctx.fill();
+
+        drawClawArm(1, accentSoft);
+        drawClawArm(-1, accentSoft);
+        drawCenterClamp(accentSoft);
+
+        if (hook.currentHit) {
+          drawAttachedObject(hook.currentHit);
+        }
+        ctx.restore();
+      }
+
+      function drawClawArm(direction, accentSoft) {
+        const armStartX = direction * 6;
+        const armStartY = 2;
+        const bendX = direction * 15;
+        const bendY = 13;
+        const tipX = direction * 11;
+        const tipY = 27;
+
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "rgba(91, 56, 31, 0.9)";
+        ctx.lineWidth = 8;
+        ctx.beginPath();
+        ctx.moveTo(armStartX, armStartY);
+        ctx.quadraticCurveTo(bendX, bendY - 4, tipX, tipY);
+        ctx.stroke();
+
+        ctx.strokeStyle = accentSoft;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(armStartX, armStartY);
+        ctx.quadraticCurveTo(bendX, bendY - 4, tipX, tipY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawCenterClamp(accentSoft) {
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "rgba(91, 56, 31, 0.9)";
+        ctx.lineWidth = 7;
+        ctx.beginPath();
+        ctx.moveTo(0, 2);
+        ctx.lineTo(0, 24);
+        ctx.stroke();
+        ctx.strokeStyle = accentSoft;
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(0, 2);
+        ctx.lineTo(0, 24);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawAttachedObject(obj) {
+        const attachedX = 0;
+        const attachedY = Math.max(24, obj.radius * 1.2) + 4;
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(120, 73, 39, 0.28)";
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(-7, 8);
+        ctx.lineTo(attachedX - obj.radius * 0.26, attachedY - obj.radius * 0.42);
+        ctx.moveTo(7, 8);
+        ctx.lineTo(attachedX + obj.radius * 0.26, attachedY - obj.radius * 0.42);
+        ctx.stroke();
+        ctx.restore();
+
+        drawBall(obj, attachedX, attachedY);
+      }
+
+      function drawBall(obj, x, y) {
+        const style = GEM_STYLES[obj.symbol] || {
+          fillA: obj.color,
+          fillB: "#b56d2b",
+          edge: "#734522",
+          glow: "rgba(255, 255, 255, 0.24)",
+          shape: "round"
+        };
+
+        ctx.save();
+        ctx.shadowColor = style.glow;
+        ctx.shadowBlur = 16;
+        const gemGradient = ctx.createLinearGradient(x - obj.radius, y - obj.radius, x + obj.radius, y + obj.radius);
+        gemGradient.addColorStop(0, style.fillA);
+        gemGradient.addColorStop(0.58, style.fillB);
+        gemGradient.addColorStop(1, style.edge);
+        ctx.fillStyle = gemGradient;
+        drawGemShape(x, y, obj.radius, style.shape);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 3.5;
+        ctx.strokeStyle = style.edge;
+        ctx.stroke();
+
+        ctx.save();
+        ctx.beginPath();
+        drawGemShape(x, y, obj.radius * 0.72, style.shape);
+        ctx.clip();
+        ctx.strokeStyle = "rgba(255,255,255,0.28)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x - obj.radius * 0.55, y - obj.radius * 0.1);
+        ctx.lineTo(x, y - obj.radius * 0.62);
+        ctx.lineTo(x + obj.radius * 0.46, y - obj.radius * 0.08);
+        ctx.moveTo(x - obj.radius * 0.28, y + obj.radius * 0.12);
+        ctx.lineTo(x + obj.radius * 0.25, y + obj.radius * 0.42);
+        ctx.stroke();
+        ctx.restore();
+
+        ctx.fillStyle = "rgba(255,255,255,0.42)";
+        ctx.beginPath();
+        ctx.ellipse(x - obj.radius * 0.25, y - obj.radius * 0.3, obj.radius * 0.22, obj.radius * 0.14, -0.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        if (style.shape === "jade") {
+          drawProperNounGemMark(x, y, obj.radius);
+          ctx.restore();
+          return;
+        }
+
+        ctx.fillStyle = "#4b2a14";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.font = obj.symbol === "「」" ? "bold 28px Microsoft JhengHei" : "bold 34px Microsoft JhengHei";
+        ctx.fillText(obj.symbol, x, y + 1);
+        ctx.restore();
+      }
+
+      function drawProperNounGemMark(x, y, radius) {
+        const markWidth = radius * 0.9;
+        const markY = y + radius * 0.12;
+
+        ctx.save();
+        ctx.lineCap = "round";
+        ctx.strokeStyle = "rgba(255,255,255,0.78)";
+        ctx.lineWidth = 6;
+        ctx.beginPath();
+        ctx.moveTo(x - markWidth / 2, markY);
+        ctx.lineTo(x + markWidth / 2, markY);
+        ctx.stroke();
+
+        ctx.strokeStyle = "#4b2a14";
+        ctx.lineWidth = 3.2;
+        ctx.beginPath();
+        ctx.moveTo(x - markWidth / 2, markY);
+        ctx.lineTo(x + markWidth / 2, markY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      function drawGemShape(x, y, radius, shape) {
+        ctx.beginPath();
+        if (shape === "hex") {
+          drawPolygonPath(x, y, radius, 6, Math.PI / 6);
+          return;
+        }
+        if (shape === "octagon") {
+          drawPolygonPath(x, y, radius, 8, Math.PI / 8);
+          return;
+        }
+        if (shape === "cut") {
+          drawPolygonPath(x, y, radius, 7, Math.PI / 14);
+          return;
+        }
+        if (shape === "diamond") {
+          ctx.moveTo(x, y - radius);
+          ctx.lineTo(x + radius * 0.82, y);
+          ctx.lineTo(x, y + radius);
+          ctx.lineTo(x - radius * 0.82, y);
+          ctx.closePath();
+          return;
+        }
+        if (shape === "teardrop") {
+          ctx.moveTo(x, y - radius);
+          ctx.quadraticCurveTo(x + radius * 0.98, y - radius * 0.25, x + radius * 0.72, y + radius * 0.5);
+          ctx.arc(x, y + radius * 0.2, radius * 0.72, 0.15 * Math.PI, 0.85 * Math.PI, false);
+          ctx.quadraticCurveTo(x - radius * 0.98, y - radius * 0.25, x, y - radius);
+          ctx.closePath();
+          return;
+        }
+        if (shape === "moon") {
+          ctx.arc(x, y, radius, 0, Math.PI * 2);
+          return;
+        }
+        if (shape === "jade") {
+          ctx.moveTo(x - radius * 0.78, y - radius * 0.58);
+          ctx.lineTo(x + radius * 0.78, y - radius * 0.58);
+          ctx.quadraticCurveTo(x + radius, y, x + radius * 0.82, y + radius * 0.58);
+          ctx.lineTo(x - radius * 0.82, y + radius * 0.58);
+          ctx.quadraticCurveTo(x - radius, y, x - radius * 0.78, y - radius * 0.58);
+          ctx.closePath();
+          return;
+        }
+        drawPolygonPath(x, y, radius, 10, Math.PI / 10);
+      }
+
+      function drawPolygonPath(x, y, radius, sides, rotation) {
+        for (let i = 0; i < sides; i += 1) {
+          const angle = rotation + (Math.PI * 2 * i) / sides;
+          const px = x + Math.cos(angle) * radius;
+          const py = y + Math.sin(angle) * radius;
+          if (i === 0) {
+            ctx.moveTo(px, py);
+          } else {
+            ctx.lineTo(px, py);
+          }
+        }
+        ctx.closePath();
+      }
+
+      function handleKeyDown(event) {
+        if (event.code === "KeyA") fire("A");
+        if (event.code === "KeyL") fire("B");
+      }
+
+      function handleCanvasPointer(event) {
+        const rect = canvas.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        if (x < rect.width / 2) {
+          fire("A");
+        } else {
+          fire("B");
+        }
+      }
+
+      function updateModeButtons() {
+        modeTimed.classList.toggle("active", selectedMode === "timed");
+        modeUntimed.classList.toggle("active", selectedMode === "untimed");
+      }
+
+      fireA.addEventListener("click", () => fire("A"));
+      fireB.addEventListener("click", () => fire("B"));
+      modeTimed.addEventListener("click", () => {
+        selectedMode = "timed";
+        updateModeButtons();
+      });
+      modeUntimed.addEventListener("click", () => {
+        selectedMode = "untimed";
+        updateModeButtons();
+      });
+      restartButton.addEventListener("click", startGame);
+      quickRestart.addEventListener("click", startGame);
+      window.addEventListener("keydown", handleKeyDown);
+      canvas.addEventListener("pointerdown", handleCanvasPointer);
+
+      startGame();
+    })();
+  </script>
+</body>
+</html>
