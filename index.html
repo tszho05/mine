@@ -1012,6 +1012,8 @@
         drawArenaLabels(halfW);
         drawObjects("left");
         drawObjects("right");
+        drawPredictionLine(gameState.teamA, "left");
+        drawPredictionLine(gameState.teamB, "right");
         drawHook(gameState.teamA, "left");
         drawHook(gameState.teamB, "right");
       }
@@ -1068,6 +1070,41 @@
           const x = side === "left" ? obj.leftX : obj.rightX;
           drawBall(obj, x, obj.localY);
         }
+      }
+
+      function drawPredictionLine(team, side) {
+        const hook = team.hook;
+        if (hook.state !== "swing") return;
+
+        const origin = getOrigin(side);
+        const maxLength = canvas.height - origin.y - 36;
+        const halfW = canvas.width / 2;
+
+        const tipX = origin.x + Math.sin(hook.angle) * hook.length;
+        const tipY = origin.y + Math.cos(hook.angle) * hook.length;
+        const maxX = origin.x + Math.sin(hook.angle) * maxLength;
+        const maxY = origin.y + Math.cos(hook.angle) * maxLength;
+
+        ctx.save();
+        ctx.beginPath();
+        if (side === "left") {
+          ctx.rect(0, 0, halfW, canvas.height);
+        } else {
+          ctx.rect(halfW, 0, halfW, canvas.height);
+        }
+        ctx.clip();
+
+        ctx.setLineDash([12, 9]);
+        ctx.lineWidth = 2.5;
+        ctx.lineCap = "round";
+        ctx.strokeStyle = side === "left"
+          ? "rgba(30, 140, 255, 0.45)"
+          : "rgba(236, 72, 153, 0.45)";
+        ctx.beginPath();
+        ctx.moveTo(tipX, tipY);
+        ctx.lineTo(maxX, maxY);
+        ctx.stroke();
+        ctx.restore();
       }
 
       function drawHook(team, side) {
